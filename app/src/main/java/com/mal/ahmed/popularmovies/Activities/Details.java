@@ -3,6 +3,7 @@ package com.mal.ahmed.popularmovies.Activities;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
 
 import com.mal.ahmed.popularmovies.Fragments.DetailsFragment;
 import com.mal.ahmed.popularmovies.Movie;
@@ -23,5 +24,7 @@ public class Details extends AppCompatActivity {
         getSupportFragmentManager().beginTransaction().replace(R.id.fragment1, detailsActivityFragment).commit();
 
     }
+
+
 
 }

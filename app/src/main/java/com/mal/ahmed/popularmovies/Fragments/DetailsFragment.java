@@ -10,13 +10,20 @@ import android.graphics.drawable.BitmapDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.ShareCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.ShareActionProvider;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -29,6 +36,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.mal.ahmed.popularmovies.Activities.Main;
 import com.mal.ahmed.popularmovies.Adapters.ReviewsAdapter;
 import com.mal.ahmed.popularmovies.Adapters.VideosAdapter;
 import com.mal.ahmed.popularmovies.Movie;
@@ -72,7 +80,9 @@ public class DetailsFragment extends Fragment {
     private RecyclerView videosRecyclerView;
     private VideosAdapter videosAdapter;
     private RecyclerView.LayoutManager videosLayoutManager;
+    private ShareActionProvider mShareActionProvider;
     private boolean added;
+    private Intent shareIntent;
 
     public DetailsFragment() {
     }
@@ -86,6 +96,52 @@ public class DetailsFragment extends Fragment {
         return detailsFragment;
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        getActivity().getMenuInflater().inflate(R.menu.menu_details, menu);
+        MenuItem item = menu.findItem(R.id.menu_item_share);
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+    }
+
+    private void changeShareIntent() {
+        if (currentItem.getTrailers() != null && currentItem.getTrailers().get(0) != null) {
+            String shareText = "i like this movie '" + currentItem.getName() + "' !        " + "watch it : http://www.youtube.com/watch?v=" + currentItem.getTrailers().get(0).getKey();
+            shareIntent = ShareCompat.IntentBuilder.from(getActivity())
+                    .setType("text/plain").setText(shareText).getIntent();
+        } else {
+            shareIntent = null;
+        }
+    }
+
+    private void setShare() {
+        changeShareIntent();
+        if (shareIntent != null && mShareActionProvider != null) {
+            mShareActionProvider.setShareIntent(shareIntent);
+        }
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.menu_item_share) {
+            return true;
+        }
+
+
+        return super.onOptionsItemSelected(item);
+
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -129,9 +185,9 @@ public class DetailsFragment extends Fragment {
                 })
         );
 
-        Cursor cursor =  getActivity().getContentResolver().query(MoviesTable.CONTENT_URI,null, MoviesTable.FIELD_ID + "=" + currentItem.getId(), null,null);
+        Cursor cursor = getActivity().getContentResolver().query(MoviesTable.CONTENT_URI, null, MoviesTable.FIELD_ID + "=" + currentItem.getId(), null, null);
         ArrayList<Movie> checker = (ArrayList<Movie>) MoviesTable.getRows(cursor, false);
-        if (checker.size()==0) {
+        if (checker.size() == 0) {
             added = false;
             fabFavorite.setImageDrawable(ContextCompat.getDrawable(getContext(), android.R.drawable.star_big_off));
         } else {
@@ -140,7 +196,6 @@ public class DetailsFragment extends Fragment {
         }
         reviewsErrorTV.setVisibility(View.GONE);
         videosErrorTV.setVisibility(View.GONE);
-
 
 
         fabFavorite.setOnClickListener(new View.OnClickListener() {
@@ -154,7 +209,7 @@ public class DetailsFragment extends Fragment {
 
                     currentItem.setPosterPath(saveImage(bitmap, currentItem.getPoster()));
                     getActivity().getContentResolver().insert(MoviesTable.CONTENT_URI, MoviesTable.getContentValues(currentItem, false));
-                    Toast.makeText(getActivity(),"Added to favorite",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "Added to favorite", Toast.LENGTH_SHORT).show();
                     added = true;
                 } else {
                     fabFavorite.setImageDrawable(ContextCompat.getDrawable(getContext(), android.R.drawable.star_big_off));
@@ -162,7 +217,7 @@ public class DetailsFragment extends Fragment {
                     System.out.println("......................." + currentItem.getId());
                     deleteImage(currentItem.getPoster());
                     currentItem.setPosterPath("");
-                    Toast.makeText(getActivity(),"Removed from favorite",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "Removed from favorite", Toast.LENGTH_SHORT).show();
                     added = false;
                 }
 
@@ -176,9 +231,9 @@ public class DetailsFragment extends Fragment {
     private boolean dbContain(Movie item) {
         Cursor cursor = getActivity().getContentResolver().query(MoviesTable.CONTENT_URI, null, null, null, null);
         ArrayList<Movie> movies = (ArrayList<Movie>) MoviesTable.getRows(cursor, false);
-        for (Movie m : movies){
+        for (Movie m : movies) {
 
-            if(m.getId().equals(item.getId())){
+            if (m.getId().equals(item.getId())) {
                 return true;
             }
         }
@@ -261,10 +316,10 @@ public class DetailsFragment extends Fragment {
                         try {
                             ArrayList<Review> resultSet;
                             resultSet = getReviewsDataFromJson(response);
-                            if(resultSet.size()==0){
+                            if (resultSet.size() == 0) {
                                 reviewsErrorTV.setText("No reviews for this movie");
                                 reviewsErrorTV.setVisibility(View.VISIBLE);
-                            }else {
+                            } else {
                                 currentItem.setReviews(resultSet);
                                 updateReviewsRV(currentItem);
                             }
@@ -276,7 +331,8 @@ public class DetailsFragment extends Fragment {
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                reviewsErrorTV.setVisibility(View.VISIBLE);             }
+                reviewsErrorTV.setVisibility(View.VISIBLE);
+            }
         });
         queue.add(stringRequest);
     }
@@ -285,6 +341,7 @@ public class DetailsFragment extends Fragment {
     private void updateReviewsRV(Movie m) {
         ArrayList<Review> reviews = m.getReviews();
         reviewsAdapter.setItems(reviews);
+
     }
 
 
@@ -322,14 +379,13 @@ public class DetailsFragment extends Fragment {
                         try {
                             ArrayList<Video> resultSet;
                             resultSet = getVideosDataFromJson(response);
-                            if(resultSet.size()==0){
+                            if (resultSet.size() == 0) {
                                 videosErrorTV.setText("No trailers for this movie");
                                 videosErrorTV.setVisibility(View.VISIBLE);
-                            }else {
+                            } else {
                                 currentItem.setTrailers(resultSet);
                                 updateVideosRV(currentItem);
                             }
-
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -338,7 +394,7 @@ public class DetailsFragment extends Fragment {
             @Override
             public void onErrorResponse(VolleyError error) {
                 videosErrorTV.setVisibility(View.VISIBLE);
-                          }
+            }
         });
         queue.add(stringRequest);
     }
@@ -346,6 +402,8 @@ public class DetailsFragment extends Fragment {
     private void updateVideosRV(Movie m) {
         ArrayList<Video> videos = m.getTrailers();
         videosAdapter.setItems(videos);
+        setShare();
+
     }
 
 
@@ -368,7 +426,6 @@ public class DetailsFragment extends Fragment {
         }
         return resultSet;
     }
-
 
 
 }
