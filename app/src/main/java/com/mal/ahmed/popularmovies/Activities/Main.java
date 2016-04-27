@@ -33,6 +33,13 @@ public class Main extends AppCompatActivity implements MainFragment.Callback {
 
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        clearfragment();
+
+
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
